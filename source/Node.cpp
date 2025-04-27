@@ -189,6 +189,29 @@ Node::AttributeList Node::Attributes() const
 	return attributes;
 }
 
+QueryResult Node::NextSiblings() const
+{
+	QueryResult::NodeSet nodes;
+
+	if (node_ == nullptr)
+	{
+		return nodes;
+	}
+
+	xmlNodePtr sibling = node_->next;
+
+	while (sibling != nullptr)
+	{
+		if (sibling->type == XML_ELEMENT_NODE)
+		{
+			nodes.emplace(sibling);
+		}
+		sibling = sibling->next;
+	}
+
+	return nodes;
+}
+
 QueryResult Node::Siblings() const
 {
 	QueryResult::NodeSet nodes;

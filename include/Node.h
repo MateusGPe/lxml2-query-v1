@@ -34,6 +34,7 @@ public:
 	std::optional<std::string> OwnTextNormalized() const;
 	std::optional<std::string> TagName() const;
 	AttributeList Attributes() const;
+	QueryResult NextSiblings() const;
 	QueryResult Siblings() const;
 	QueryResult Find(std::string_view) const;
 	QueryResult Find(const SelectorPtr) const;
