@@ -1,5 +1,6 @@
 #include "Node.h"
 #include "QueryResult.h"
+#include <libxml/xmlsave.h>
 
 std::optional<Node> Node::Parent() const
 {
@@ -244,4 +245,198 @@ QueryResult Node::Find(std::string_view selector) const
 QueryResult Node::Find(const SelectorPtr selector) const
 {
 	return QueryResult::Find(node_, selector);
+}
+
+QueryResult Node::PrevSiblings() const
+{
+	QueryResult::NodeSet nodes;
+
+	if (node_ == nullptr)
+	{
+		return nodes;
+	}
+
+	xmlNodePtr sibling = node_->prev;
+
+	std::vector<Node> temp_nodes;
+	while (sibling != nullptr)
+	{
+		if (sibling->type == XML_ELEMENT_NODE)
+		{
+			temp_nodes.push_back(Node(sibling));
+		}
+		sibling = sibling->prev;
+	}
+
+	sibling = node_->prev;
+	while (sibling != nullptr)
+	{
+		if (sibling->type == XML_ELEMENT_NODE)
+		{
+			nodes.emplace(sibling);
+		}
+		sibling = sibling->prev;
+	}
+
+	return nodes;
+}
+
+QueryResult Node::Children() const
+{
+	QueryResult::NodeSet nodes;
+
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return nodes;
+	}
+
+	for (xmlNodePtr child = node_->children; child != nullptr; child = child->next)
+	{
+		if (child->type == XML_ELEMENT_NODE)
+		{
+			nodes.emplace(child);
+		}
+	}
+
+	return nodes;
+}
+
+std::optional<Node> Node::FirstElementChild() const
+{
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return std::nullopt;
+	}
+
+	for (xmlNodePtr child = node_->children; child != nullptr; child = child->next)
+	{
+		if (child->type == XML_ELEMENT_NODE)
+		{
+			return Node(child);
+		}
+	}
+
+	return std::nullopt;
+}
+
+std::optional<Node> Node::LastElementChild() const
+{
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return std::nullopt;
+	}
+
+	xmlNodePtr last_element_child = nullptr;
+
+	for (xmlNodePtr child = node_->children; child != nullptr; child = child->next)
+	{
+		if (child->type == XML_ELEMENT_NODE)
+		{
+			last_element_child = child;
+		}
+	}
+
+	if (last_element_child != nullptr)
+	{
+		return Node(last_element_child);
+	}
+
+	return std::nullopt;
+}
+
+bool Node::HasAttribute(const std::string &key) const
+{
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return false;
+	}
+
+	return xmlHasProp(node_, reinterpret_cast<const xmlChar *>(key.c_str())) != nullptr;
+}
+
+bool Node::HasClass(const std::string &className) const
+{
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return false;
+	}
+
+	std::optional<std::string> class_attr = Attribute("class");
+
+	if (!class_attr)
+	{
+		return false;
+	}
+
+	std::stringstream ss(*class_attr);
+	std::string token;
+	while (std::getline(ss, token, ' '))
+	{
+		token.erase(0, token.find_first_not_of(' '));
+		token.erase(token.find_last_not_of(' ') + 1);
+
+		if (!token.empty() && token == className)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+std::vector<std::string> Node::Classes() const
+{
+	std::vector<std::string> class_list;
+
+	if (node_ == nullptr || node_->type != XML_ELEMENT_NODE)
+	{
+		return class_list;
+	}
+
+	std::optional<std::string> class_attr = Attribute("class");
+
+	if (!class_attr)
+	{
+		return class_list;
+	}
+
+	std::stringstream ss(*class_attr);
+	std::string token;
+	while (std::getline(ss, token, ' '))
+	{
+		token.erase(0, token.find_first_not_of(' '));
+		token.erase(token.find_last_not_of(' ') + 1);
+		if (!token.empty())
+		{
+			class_list.push_back(token);
+		}
+	}
+
+	return class_list;
+}
+
+std::optional<Node> Node::Closest(std::string_view selector) const
+{
+	if (node_ == nullptr)
+	{
+		return std::nullopt;
+	}
+
+	xmlNodePtr current = node_;
+
+	while (current != nullptr)
+	{
+		Node current_node_obj(current);
+
+		QueryResult match_result = QueryResult::Find(current, selector);
+
+		if (!match_result.empty() /*&& match_result.size() == 1 */)
+		{
+			return current_node_obj;
+		}
+
+		current = current->parent;
+	}
+
+	return std::nullopt;
 }

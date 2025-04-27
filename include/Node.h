@@ -38,6 +38,16 @@ public:
 	QueryResult Siblings() const;
 	QueryResult Find(std::string_view) const;
 	QueryResult Find(const SelectorPtr) const;
+	QueryResult PrevSiblings() const;
+	QueryResult Children() const;
+
+	bool HasAttribute(const std::string &key) const;
+	bool HasClass(const std::string &className) const;
+	std::vector<std::string> Classes() const;
+	std::optional<Node> Closest(std::string_view selector) const;
+
+	std::optional<Node> FirstElementChild() const;
+	std::optional<Node> LastElementChild() const;
 
 	operator xmlNodePtr() const
 	{
