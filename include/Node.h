@@ -59,7 +59,7 @@ public:
 		return node_;
 	}
 
-	bool valid()
+	bool valid() const
 	{
 		return node_ != nullptr;
 	}
